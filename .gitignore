@@ -1,0 +1,6 @@
+.idea/*
+ExcelFiles/*
+ExcelFiles2/*
+*.txt
+*.iml
+__pycache__/*
