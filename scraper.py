@@ -42,9 +42,11 @@ if semc == '1' or semc == '2':
         iloop = 7
         subcode = 46
 if semc == '3' or semc == '4':
+    iloop = 9
+    subcode = 58
     if dip == 'Y':
-        iloop = 9
-        subcode = 58
+        iloop = 10
+        subcode = 64
 
 # Opens file for storing data
 with open('marks.txt', 'w+') as f:
@@ -53,92 +55,118 @@ with open('marks.txt', 'w+') as f:
     driver = webdriver.Chrome('C:\Program Files (x86)\chromedriver_win32\chromedriver.exe')
     # For Loop to loop through all USNs
     for u in range(low, high):
-        # IF condition to concatenate USN
-        if u < 10:
-            usn = '1' + college + year + branch + '00' + str(u)
-        elif u < 100:
-            usn = '1' + college + year + branch + '0' + str(u)
-        else:
-            usn = '1' + college + year + branch + str(u)
-
-        # Opens the vtu result login page, gets the usn and opens the result page
-        driver.get('http://results.vtu.ac.in/resultsvitavicbcs_19/index.php')
-        driver.save_screenshot('python_org.png')
-        img = cv2.imread("python_org.png")
-        crop_img = img[467:508, 667:885]
-        cv2.imwrite('cap.png', crop_img)
-        cv2.waitKey(0)
-        tex = pytesseract.image_to_string(Image.open('cap.png'))
-        tex = tex.strip(',')
-        tex = tex.strip(' ')
-        captcha = int(tex)
-        us = driver.find_element_by_name("lns")
-        cap = driver.find_element_by_name("captchacode")
-        us.send_keys(usn)
-        cap.send_keys(captcha)
-        driver.find_element_by_id("submit").click()
-        try:
-            soup = BeautifulSoup(driver.page_source)
-        except:
-            # Catches all types of errors like Invalid Captcha and Invalid USN
-            alert = driver.switch_to.alert
-            alert.dismiss()
-            continue
-
-        # Finds all the table elements and stores in array tds
-        tds = soup.find_all('td')
-        ths = soup.find_all('th')
-        divs = soup.find_all('div', attrs={'class': 'col-md-12'})
-        divCell = soup.find_all('div', attrs={'class': 'divTableCell'})
-
-        record = ''
-        # tds[1] holds USN number
-        record += re.sub('[!@#$:]', '', tds[1].text)
-        record += ','
-        # tds[3] holds the name
-        record += re.sub('[!@#$:]', '', tds[3].text)
-        record += ','
-
-        sortList1 = []
-        for i in range(6, subcode, 6):
-            if (divCell[i].text[-3:]).isdigit():
-                sortList1.append(divCell[i].text[-3:])
+        redo = True
+        while redo:
+            redo = False
+            # IF condition to concatenate USN
+            if u < 10:
+                usn = '1' + college + year + branch + '00' + str(u)
+            elif u < 100:
+                usn = '1' + college + year + branch + '0' + str(u)
             else:
-                sortList1.append(divCell[i].text[-2:])
-        sortList1.sort()
+                usn = '1' + college + year + branch + str(u)
 
-        ilist = []
-        for i in range(0, iloop):
-            for j in range(6, subcode, 6):
-                if (divCell[j].text[-3:]).isdigit():
-                    if divCell[j].text[-3:] == sortList1[i] and j not in ilist:
-                        ilist.append(j)
+            # Opens the vtu result login page, gets the usn and opens the result page
+            driver.get('http://results.vtu.ac.in/resultsvitavicbcs_19/index.php')
+            driver.save_screenshot('python_org.png')
+            img = cv2.imread("python_org.png")
+            crop_img = img[467:508, 667:885]
+            cv2.imwrite('cap.png', crop_img)
+            cv2.waitKey(0)
+            tex = pytesseract.image_to_string(Image.open('cap.png'))
+            tex = tex.strip(',')
+            tex = tex.strip(' ')
+            try:
+                captcha = int(tex)
+            except:
+                print("Invalid CAPTCHA Detected.")
+                redo = True
+                continue
+            us = driver.find_element_by_name("lns")
+            cap = driver.find_element_by_name("captchacode")
+            us.send_keys(usn)
+            cap.send_keys(captcha)
+            driver.find_element_by_id("submit").click()
+            try:
+                soup = BeautifulSoup(driver.page_source)
+            except:
+                # Catches all types of errors like Invalid Captcha and Invalid USN
+                alert = driver.switch_to.alert
+                if alert.text == "University Seat Number is not available or Invalid..!":
+                    print("No results for : " + usn + "\n")
+                    alert.accept()
+                    continue
+                elif alert.text == "Invalid captcha code !!!":
+                    print("Invalid CAPTCHA Detected for USN : " + usn + "\n")
+                    alert.accept()
+                    redo = True
+                    continue
+
+            # Finds all the table elements and stores in array tds
+            tds = soup.find_all('td')
+            ths = soup.find_all('th')
+            divs = soup.find_all('div', attrs={'class': 'col-md-12'})
+            divCell = soup.find_all('div', attrs={'class': 'divTableCell'})
+
+            try:
+                sem = divs[5].div.text
+                sem = sem.strip('Semester : ')
+            except AttributeError:
+                print("INVALID USN/ INCOMPATIBLE DATA : " + usn + "\n")
+
+            # IF condition to check invalid page opener
+            if tds[0].text != 'University Seat Number ' or sem != semc:  # To check for Diploma and Number of students
+                print("INVALID USN/ INCOMPATIBLE DATA : " + usn + "\n")
+                continue
+
+            record = ''
+            # tds[1] holds USN number
+            record += re.sub('[!@#$:]', '', tds[1].text)
+            record += ','
+            # tds[3] holds the name
+            record += re.sub('[!@#$:]', '', tds[3].text)
+            record += ','
+
+            sortList1 = []
+            for i in range(6, subcode, 6):
+                if (divCell[i].text[-3:]).isdigit():
+                    sortList1.append(divCell[i].text[-3:])
                 else:
-                    if divCell[j].text[-2:] == sortList1[i] and j not in ilist:
-                        ilist.append(j)
+                    sortList1.append(divCell[i].text[-2:])
+            sortList1.sort()
 
-        # Strips extra garbage from the retrieved USN text
-        print(record, end='\t')
-        # Loop that goes from 8 to 51 in steps of 6 because starting from 8, in steps of 6
-        try:
-            for l in ilist:
-                # Checks if string has number
-                for j in range(l, l + 6):
-                    if j == l + 1:
-                        continue
+            ilist = []
+            for i in range(0, iloop):
+                for j in range(6, subcode, 6):
+                    if (divCell[j].text[-3:]).isdigit():
+                        if divCell[j].text[-3:] == sortList1[i] and j not in ilist:
+                            ilist.append(j)
                     else:
-                        char = divCell[j].text
-                        if char.isdigit():
-                            record = record + str(int(char)) + ','
+                        if divCell[j].text[-2:] == sortList1[i] and j not in ilist:
+                            ilist.append(j)
+
+            # Strips extra garbage from the retrieved USN text
+            print(record, end='\t')
+            # Loop that goes from 8 to 51 in steps of 6 because starting from 8, in steps of 6
+            try:
+                for l in ilist:
+                    # Checks if string has number
+                    for j in range(l, l + 6):
+                        if j == l + 1:
+                            continue
                         else:
-                            record = record + char + ','
-                        print(divCell[j].text, end='\t\t')
-                        if j == l + 5:
-                            pf = pf + divCell[j].text + ','
-            f.write(record + '\n')
-            print('\n')
-        except IndexError:
-            pass
+                            char = divCell[j].text
+                            if char.isdigit():
+                                record = record + str(int(char)) + ','
+                            else:
+                                record = record + char + ','
+                            print(divCell[j].text, end='\t\t')
+                            if j == l + 5:
+                                pf = pf + divCell[j].text + ','
+                f.write(record + '\n')
+                print('\n')
+            except IndexError:
+                pass
 
 driver.quit()
 
@@ -176,13 +204,14 @@ else:
     book.save(pth + '1' + college + year + branch + str(low) + '-' + str(high - 1) + 'DIP.xls')
 f.close()
 
+files = ['cap.png', 'python_org.png', 'marks.txt']
+for file in files:
+    try:
+        os.remove(file)
+    except:
+        pass
+
 if dip != 'Y':
-    files = ['cap.png', 'python_org.png', 'marks.txt']
-    for file in files:
-        try:
-            os.remove(file)
-        except:
-            pass
     from sgpa import gpa
 
     gpa(college, year, branch, low, high, semc, cycle)
