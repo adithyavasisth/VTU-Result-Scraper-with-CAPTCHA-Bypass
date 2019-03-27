@@ -28,7 +28,6 @@ else:
 # increment last USN to aid looping
 high = int(input('Enter last USN\n')) + 1
 semc = input('Enter the Semester\n')
-cycle = 'N'
 if low >= 400:
     dip = 'Y'
 else:
@@ -36,11 +35,6 @@ else:
 
 subcode = 52
 iloop = 8
-if semc == '1' or semc == '2':
-    cycle = input('Enter the Cycle\n').upper()
-    if cycle == 'P':
-        iloop = 7
-        subcode = 46
 if semc == '3' or semc == '4':
     iloop = 9
     subcode = 58
@@ -214,4 +208,4 @@ for file in files:
 if dip != 'Y':
     from sgpa import gpa
 
-    gpa(college, year, branch, low, high, semc, cycle)
+    gpa(college, year, branch, low, high, semc)
