@@ -18,21 +18,8 @@ if not sys.warnoptions:
 
 
 def scrape(college, year, branch, low, high, semc):
-    # Input for Branch and USNs
-    # college = input("Enter the college code\n").upper()
-    # year = input('Enter the year\n')
-    # branch = input('Please enter the branch\n').upper()
-    # low = int(input('Enter starting USN\n'))
     low = int(low)
     high = int(high) + 1
-    if low >= 400:
-        dip = 'Y'
-    else:
-        dip = 'N'
-    # increment last USN to aid looping
-    # high = int(input('Enter last USN\n')) + 1
-    # semc = input('Enter the Semester\n')
-    cycle = 'N'
     if low >= 400:
         dip = 'Y'
     else:
@@ -40,11 +27,6 @@ def scrape(college, year, branch, low, high, semc):
 
     subcode = 52
     iloop = 8
-    if semc == '1' or semc == '2':
-        cycle = input('Enter the Cycle\n').upper()
-        if cycle == 'P':
-            iloop = 7
-            subcode = 46
     if semc == '3' or semc == '4':
         iloop = 9
         subcode = 58
@@ -219,7 +201,4 @@ def scrape(college, year, branch, low, high, semc):
     if dip != 'Y':
         from sgpa import gpa
 
-        gpa(college, year, branch, low, high, semc, cycle)
-
-
-
+        gpa(college, year, branch, low, high, semc)
